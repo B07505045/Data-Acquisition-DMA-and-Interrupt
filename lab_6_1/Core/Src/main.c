@@ -72,7 +72,10 @@ const osThreadAttr_t task1_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-
+osSemaphoreId_t myBinarySem01Handle;
+const osSemaphoreAttr_t myBinarySem01_attributes = {
+  .name = "myBinarySem01"
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,9 +99,11 @@ int __io_putchar(int ch)
 	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
 	return ch;
 }
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	uint16_t val = HAL_ADC_GetValue(&hadc1);
-	printf("%d\n", val);
+	osSemaphoreRelease(myBinarySem01Handle);
+	//uint16_t val = HAL_ADC_GetValue(&hadc1);
+	//printf("%d\n", val);
 }
 /* USER CODE END PFP */
 
@@ -174,6 +179,8 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of task1 */
+  myBinarySem01Handle = osSemaphoreNew(1, 1, &myBinarySem01_attributes);
+  osSemaphoreAcquire(myBinarySem01Handle, osWaitForever);
   task1Handle = osThreadNew(task2, NULL, &task1_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -849,10 +856,11 @@ void task2(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	for (;;) {
+		osSemaphoreAcquire(myBinarySem01Handle, osWaitForever);
+		uint16_t val = HAL_ADC_GetValue(&hadc1);
+		printf("%d\n", val);
+	}
   /* USER CODE END 5 */
 }
 
